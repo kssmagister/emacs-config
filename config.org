@@ -1,1 +1,2 @@
 * config
+Das ist nur eine Beispieldatei.
