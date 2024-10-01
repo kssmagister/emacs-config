@@ -1,11 +1,21 @@
-# Compiled
-*.elc
+# Ignoriere alle Dateien standardmäßig
+*
 
-# Packaging
-.cask
+# Erlaube spezifische Verzeichnisse und deren Inhalte
+!/config/
+!/config/**
+!/themes/
+!/themes/**
+!/snippets/
+!/snippets/**
+!/org/
+!/org/**
+!/utils/
+!/utils/**
+!config.org
 
-# Backup files
+# Ignoriere alle Backup-Dateien und temporären Dateien
 *~
-
-# Undo-tree save-files
-*.~undo-tree
+*.bak
+*.swp
+.DS_Store

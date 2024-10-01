@@ -1,0 +1,475 @@
+* Classroom utilities
+The provided Emacs Lisp functions serve several purposes related to enhancing productivity in text processing, particularly within Org-mode and LaTeX workflows. Here is a summary:
+
+1. *dr-insert-picture*: This function allows users to insert a picture from a specified directory into an Org-mode file at the cursor position, with configurable image width attributes for both HTML and LaTeX. It is useful for embedding images in documentation or notes.
+
+2. *dr-search-replace* and *dr-search-replace-vowels*: These functions are used for replacing various special characters or accented letters with simpler equivalents. `dr-search-replace` replaces different types of quotation marks and the character `ß` with normalized versions. `dr-search-replace-vowels` changes accented vowels to their unaccented counterparts. These functions streamline text standardization.
+
+3. *dr-combined-text-processing*: Combines multiple text-processing steps into one. It replaces quotation marks, `ß`, removes vowel accents, and deletes references in the form "(siehe Kapitel X.X)". It aims to simplify and clean up text in one unified step.
+
+4. *dr-export-current-org-file* and *dr-export-org-to-pdf* (Versions 1 and 2): These functions export the current Org-mode buffer to a PDF using LaTeX. The difference between the two versions is in how they handle the LaTeX process. `dr-export-current-org-file` also triggers a PowerShell script to convert the resulting PDF into DOCX format. This functionality is beneficial for generating formal document formats.
+
+5. *dr-count-all-letters-in-buffer*: This function counts all letters in the current buffer, useful for text analysis or gaining insights into text length without relying on whitespace or punctuation.
+
+6. *dr-convert-md-to-pdf-and-html-with-marp*: This function converts a Markdown file into HTML and PDF formats using Marp, providing an efficient way to create presentations or documentation from Markdown sources.
+
+7. *sortiere-begriffe-in-markierung*: This function sorts terms alphabetically within a marked selection. It is intended to be used for text reorganization, particularly for ordered lists.
+
+8. *dr-create-project-structure*: Automatically creates a project structure with predefined directories and files copied from a template. This helps standardize the initial setup for new projects.
+
+9. *dr-create-and-copy-unterrichtseinheit*: Creates a new directory for a teaching unit and copies template contents into it, then opens the new directory in Dired mode. This helps to efficiently set up a new teaching unit.
+
+10. *dr-create-note-frame-and-buffers*: Creates a new frame in Emacs named "note" with two buffers, `memo` and `comment`. The subsequent functions save these buffers to timestamped files and close them, allowing users to organize notes effectively.
+
+11. *dr-ii*: Replaces instances of "ii" in an Org-mode buffer with paths to the latest images from a specified directory, adding appropriate HTML and LaTeX attributes for embedding images. This automation is useful for adding images to notes without manual file browsing.
+
+12. *my/org-insert-latest-image*: This function helps insert the most recent images from a specified folder into an Org-mode buffer, allowing for quick reference or documentation with visual elements.
+
+13. *dr-latex-screenshot*: Automates saving a screenshot and inserting an `\includegraphics` command in LaTeX, making it efficient for embedding screenshots directly into LaTeX documents.
+
+Each of these functions serves to automate or simplify specific repetitive tasks, focusing on text processing, document generation, and structured file management, ultimately making Emacs a more powerful tool for the user's daily work.
+** dr-insert-picture
+#+begin_src emacs-lisp
+  (defun dr-insert-picture ()
+    "Insert a picture from C:/Users/SyncthingServiceAcct/Syncl/09_Pictures/ into the current org-mode file at the cursor position."
+    (interactive)
+    (if (eq major-mode 'org-mode)
+	(let* ((picture-dir "C:/Users/SyncthingServiceAcct/Syncl/09_Pictures/")
+	       (picture-path (expand-file-name (read-file-name "Select a picture: " picture-dir)))
+	       ;; Convert the path to Windows format
+	       (picture-path-windows (replace-regexp-in-string "/" "\\\\" picture-path))
+	       ;; Capitalize the drive letter
+	       (picture-path-windows (concat (upcase (substring picture-path-windows 0 1))
+					     (substring picture-path-windows 1)))
+	       ;; Ask for width in pixels
+	       (width (read-number "Width in pixels: " 300)))
+	  ;; Insert the org-mode code for the picture at the cursor position
+	  (insert (format "#+attr_html: :width %dpx\n#+attr_latex: :width %dpx\n[[%s]]\n\n" width width picture-path-windows)))
+      (message "You must be in an org-mode buffer to insert a picture.")))
+
+#+end_src
+
+** dr-search-repleace
+#+begin_src emacs-lisp
+  ;(defun dr-search-replace ()
+  ;  "Ersetzt die Zeichen « und » durch \"."
+  ;  (interactive)
+  ;  (goto-char (point-min))
+  ;  (while (search-forward "«" nil t)
+  ;    (replace-match "\""))
+  ;  (goto-char (point-min))
+  ;  (while (search-forward "»" nil t)
+  ;    (replace-match "\"")))
+
+  (defun dr-search-replace ()
+    "Ersetzt die Zeichen «, », „, ”, ß durch \", \", \", \", ss in einem Durchgang."
+    (interactive)
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "[«»„”“ß]" nil t)
+	(replace-match (pcase (match-string 0)
+			 ("«" "\"")
+			 ("»" "\"")
+			 ("„" "\"")
+			 ("“" "\"")
+			 ("”" "\"")
+			 ("ß" "ss"))
+		       t t))))
+
+  (defun dr-search-replace-vowels ()
+    "Ersetzt Vokale mit Längen durch Vokale OHNE Längen."
+    (interactive)
+    (goto-char (point-min))
+    (while (search-forward "ā" nil t)
+      (replace-match "a"))
+    (goto-char (point-min))
+    (while (search-forward "ē" nil t)
+      (replace-match "e"))
+    (goto-char (point-min))
+    (while (search-forward "ī" nil t)
+      (replace-match "i"))
+    (goto-char (point-min))
+    (while (search-forward "ō" nil t)
+      (replace-match "o"))
+    (goto-char (point-min))
+    (while (search-forward "ū" nil t)
+      (replace-match "u")))
+#+end_src
+*** drei in eins
+#+begin_src emacs-lisp
+  (defun dr-combined-text-processing ()
+    "Führt alle angegebenen Textverarbeitungen in einem Durchgang aus:
+     Ersetzt «, », „ und “ durch \", ß durch ss, entfernt spezifische Vokale und löscht Referenzen des Formats '(siehe Kapitel X.X)'."
+    (interactive)
+    (save-excursion
+      ;; Ersetzt Anführungszeichen und ß
+      (goto-char (point-min))
+      (while (search-forward "«" nil t) (replace-match "\""))
+      (while (search-forward "»" nil t) (replace-match "\""))
+      (while (search-forward "„" nil t) (replace-match "\""))
+      (while (search-forward "“" nil t) (replace-match "\""))
+      (while (search-forward "ß" nil t) (replace-match "ss"))
+
+      ;; Ersetzt Vokale
+      (goto-char (point-min))
+      (while (search-forward "ā" nil t) (replace-match "a"))
+      (while (search-forward "ē" nil t) (replace-match "e"))
+      (while (search-forward "ī" nil t) (replace-match "i"))
+      (while (search-forward "ō" nil t) (replace-match "o"))
+      (while (search-forward "ū" nil t) (replace-match "u"))
+
+      ;; Löscht Kapitelverweise
+      (goto-char (point-min))
+      (while (re-search-forward "(siehe Kapitel \\([0-9]+\\.[0-9]+\\))" nil t)
+	(replace-match ""))))
+
+#+end_src
+** dr-export-current-org-file
+#+begin_src emacs-lisp
+  (defun dr-export-current-org-file ()
+    "Export the current org-mode file to PDF using LaTeX and run a PowerShell script to convert to DOCX."
+    (interactive)
+    (if (eq major-mode 'org-mode)
+	(let* ((current-file (buffer-file-name))
+	       (current-dir (file-name-directory current-file))
+	       (base-name (file-name-sans-extension (file-name-nondirectory current-file)))
+	       (pdf-file (concat current-dir base-name ".pdf"))
+	       (script-path "C:/Users/RutzD/C:/Users/SyncthingServiceAcct/Syncl/00_KSS/convert.ps1"))
+	  ;; Export to PDF using org-mode's LaTeX export
+	  (org-latex-export-to-pdf)
+	  (message "Exported to PDF: %s" pdf-file)
+	  ;; Run the PowerShell script with the current file path as an argument
+	  (shell-command (format "powershell.exe -File \"%s\" \"%s\"" script-path current-file)))
+      (message "You must be in an org-mode buffer to export the file.")))
+  (global-set-key (kbd "C-x x e") 'dr-export-current-org-file)
+#+end_src
+
+** dr-export-org-to-pdf
+
+#+begin_src emacs-lisp
+  (defun dr-export-org-to-pdf ()
+    "Export the current Org-mode buffer to a PDF file using LaTeX."
+    (interactive)
+    ;; Ensure the buffer is in Org-mode.
+    (unless (eq major-mode 'org-mode)
+      (error "Not in an Org-mode buffer"))
+    ;; Export to LaTeX first.
+    (org-latex-export-to-latex)
+    ;; Get the file names.
+    (let* ((org-file (buffer-file-name))
+	   (base-name (file-name-sans-extension org-file))
+	   (tex-file (concat base-name ".tex"))
+	   (pdf-file (concat base-name ".pdf")))
+      ;; Check if the .tex file was created.
+      (unless (file-exists-p tex-file)
+	(error "Failed to export to LaTeX"))
+      ;; Run LaTeX to generate the PDF.
+      (let ((command (format "pdflatex %s" (shell-quote-argument tex-file))))
+	(shell-command command)
+	(shell-command command)  ;; Sometimes pdflatex needs to be run twice.
+	;; Check if the PDF was created.
+	(if (file-exists-p pdf-file)
+	    (message "Exported to PDF: %s" pdf-file)
+	  (error "Failed to create PDF")))))
+
+#+end_src
+
+*** Version 2
+#+begin_src emacs-lisp
+  (defun dr-export-org-to-pdf-2 ()
+    "Export the current Org-mode buffer to a PDF file using LaTeX."
+    (interactive)
+    ;; Ensure the buffer is in Org-mode.
+    (unless (eq major-mode 'org-mode)
+      (error "Not in an Org-mode buffer"))
+
+    ;; Export to LaTeX first.
+    (org-latex-export-to-latex)
+  
+    ;; Get the file names.
+    (let* ((org-file (buffer-file-name))
+	   (base-name (file-name-sans-extension org-file))
+	   (tex-file (concat base-name ".tex"))
+	   (pdf-file (concat base-name ".pdf")))
+
+      ;; Check if the .tex file was created.
+      (unless (file-exists-p tex-file)
+	(error "Failed to export to LaTeX"))
+
+      ;; Run LaTeX to generate the PDF.
+      (let ((command (format "pdflatex %s" (shell-quote-argument tex-file))))
+	(shell-command-to-string command)
+	(shell-command-to-string command)  ;; Sometimes pdflatex needs to be run twice.
+
+	;; Check if the PDF was created.
+	(if (file-exists-p pdf-file)
+	    (message "Exported to PDF: %s" pdf-file)
+	  (error "Failed to create PDF")))))
+
+#+end_src
+** dr-count-letters-in-buffer
+#+begin_src emacs-lisp
+  (defun dr-count-all-letters-in-buffer ()
+    "Zählt die Anzahl aller Buchstaben im aktuellen Buffer."
+    (let ((count 0))
+      (save-excursion ; Stellt sicher, dass der Punkt (Cursor) nach dem Durchlaufen an der ursprünglichen Stelle bleibt
+	(goto-char (point-min)) ; Geht zum Anfang des Buffers
+	(while (not (eobp)) ; Wiederholt, bis das Ende des Buffers erreicht ist
+	  (if (char-alpha-p (char-after (point))) ; Überprüft, ob der aktuelle Charakter ein Buchstabe ist
+	      (setq count (+ count 1))) ; Wenn ja, erhöht den Zähler
+	  (forward-char 1)) ; Geht zum nächsten Charakter
+	count))) ; Gibt den finalen Zähler zurück
+#+end_src
+** dr-convert-md-to-pdf-and-html-with-marp
+#+begin_src emacs-lisp
+  ;; (defun dr-convert-md-to-pdf-with-marp ()
+  ;;   "Konvertiert die aktuelle Markdown-Datei im Buffer in eine PDF-Datei mit Marp über PowerShell."
+  ;;   (interactive)
+  ;;   ;; Stelle sicher, dass der aktuelle Buffer eine .md-Datei ist
+  ;;   (when (string-equal (file-name-extension (buffer-file-name)) "md")
+  ;;     (let ((md-file-path (buffer-file-name))
+  ;; 	  (powershell-cmd "powershell.exe -Command"))
+  ;;       ;; Konstruiere den Befehl für PowerShell
+  ;;       (let ((command-string (format "%s \"marp --pdf '%s' --allow-local-files\""
+  ;; 				    powershell-cmd md-file-path)))
+  ;; 	;; Führe den Befehl in der Shell aus
+  ;; 	(shell-command command-string)
+  ;; 	(message "Markdown zu PDF Konvertierung abgeschlossen für: %s" md-file-path)))))
+
+  (defun dr-convert-md-to-pdf-and-html-with-marp ()
+    "Konvertiert die aktuelle Markdown-Datei im Buffer zuerst in eine HTML-Datei und dann in eine PDF-Datei mit Marp über PowerShell."
+    (interactive)
+    ;; Stelle sicher, dass der aktuelle Buffer eine .md-Datei ist
+    (when (string-equal (file-name-extension (buffer-file-name)) "md")
+      (let ((md-file-path (buffer-file-name))
+	    (powershell-cmd "powershell.exe -Command"))
+	;; Konstruiere den Befehl für HTML-Konvertierung
+	(let ((html-command-string (format "%s \"marp --html '%s'\""
+					   powershell-cmd md-file-path)))
+	  ;; Führe den Befehl für HTML-Konvertierung in der Shell aus
+	  (shell-command html-command-string)
+	  (message "Markdown zu HTML Konvertierung abgeschlossen für: %s" md-file-path))
+	;; Konstruiere den Befehl für PDF-Konvertierung
+	(let ((pdf-command-string (format "%s \"marp --pdf '%s' --allow-local-files\""
+					  powershell-cmd md-file-path)))
+	  ;; Führe den Befehl für PDF-Konvertierung in der Shell aus
+	  (shell-command pdf-command-string)
+	  (message "Markdown zu PDF Konvertierung abgeschlossen für: %s" md-file-path)))))
+#+end_src
+** sortiere-begriffe-in-markierung
+#+begin_src emacs-lisp
+  (defun sortiere-begriffe-in-markierung ()
+    "Sortiert die Begriffe in der markierten Auswahl alphabetisch.
+  Begriffe sind das erste Wort entweder am Zeilenanfang oder nach einem ';'."
+    (interactive)
+    (if (use-region-p)
+	(let* ((start (region-beginning))
+	       (end (region-end))
+	       (zeile (buffer-substring-no-properties start end))
+	       (sortierte-zeile (sortiere-begriffe-in-zeile zeile)))
+	  (delete-region start end)
+	  (insert sortierte-zeile))
+      (message "Keine Auswahl markiert!")))
+#+end_src
+
+#+RESULTS:
+: sortiere-begriffe-in-markierung
+** dr-create-project-structure
+#+begin_src emacs-lisp
+  (defun dr-create-project-structure (project-name)
+    "Erstellt eine Projektsstruktur im Verzeichnis ~/Dropbox/python/projects und kopiert Dateien aus einem Beispielverzeichnis, einschließlich versteckter Dateien."
+    (interactive "sProjektname: ")
+    (let ((project-root (concat "~/Dropbox/python/projects/" project-name))
+	  (example-files-dir "~/Dropbox/python/projects/project-example-files"))
+      ;; Erstelle das Wurzelverzeichnis des Projekts
+      (make-directory project-root t)
+
+      ;; Liste der Ordner, die erstellt werden sollen
+      (dolist (dir '("src" "tests" "docs" "lib" "tools" "data" "environments"))
+	(make-directory (concat project-root "/" dir) t))
+
+      ;; Kopiere alle Dateien (einschließlich versteckter) aus dem Beispielverzeichnis
+      (dolist (file (directory-files example-files-dir t))
+	(unless (file-directory-p file)
+	  (copy-file file (concat project-root "/" (file-name-nondirectory file)) t)))
+
+      (message "Projektstruktur für '%s' erstellt und Dateien kopiert." project-name)))
+#+end_src
+** dr-copy-unterrichtseinheit
+#+begin_src emacs-lisp
+  (defun dr-create-and-copy-unterrichtseinheit ()
+    "Erstellt einen neuen Ordner 'Unterrichtseinheit_(Name)' und kopiert Inhalte aus einem Vorlagenordner. Wechselt dann in den neu erstellten Ordner im Dired-Modus."
+    (interactive)
+    (let ((source-dir "C:/Users/RutzD/C:/Users/SyncthingServiceAcct/Syncl/00_KSS/Vorlagen/Unterrichtseinheit_")
+	  (custom-name (read-string "Name für die neue Unterrichtseinheit: "))
+	  (base-destination-dir (read-directory-name "Zielverzeichnis wählen: " "C:/Users/RutzD/C:/Users/SyncthingServiceAcct/Syncl/")))
+      (let ((full-destination-dir (concat base-destination-dir "U_" custom-name)))
+	(if (file-directory-p source-dir)
+	    (progn
+	      (make-directory full-destination-dir t)
+	      (copy-directory source-dir full-destination-dir nil t t)
+	      (dired full-destination-dir))  ; Wechselt in den neu erstellten Ordner im Dired-Modus
+	  (message "Quellverzeichnis existiert nicht!")))))
+#+end_src
+** note: memo and comment
+#+begin_src emacs-lisp
+  (defun dr-create-note-frame-and-buffers ()
+    "Erstellt einen neuen Frame 'note' mit zwei Buffern: 'memo' und 'comment'."
+    (interactive)
+    (let ((note-frame (make-frame '((name . "note")))))
+      (select-frame-set-input-focus note-frame)
+      (split-window-horizontally) ;; Teilt das Fenster horizontal
+      ;; Erster Buffer
+      (set-buffer (get-buffer-create "memo"))
+      (switch-to-buffer "memo")
+      ;; Zweiter Buffer
+      (other-window 1) ;; Wechselt zum nächsten Fenster
+      (set-buffer (get-buffer-create "comment"))
+      (switch-to-buffer "comment")))
+
+  (defun dr-save-note-buffers-to-files ()
+    "Speichert die Inhalte der Buffer 'memo' und 'comment' in Dateien mit Datumsstempel."
+    (interactive)
+    (let ((date-string (format-time-string "%Y-%m-%d")))
+      ;; Speichern des Inhalts von 'memo'
+      (with-current-buffer "memo"
+	(write-file (concat "memo-" date-string ".txt")))
+      ;; Speichern des Inhalts von 'comment'
+      (with-current-buffer "comment"
+	(write-file (concat "comment-" date-string ".txt")))))
+
+  (defun dr-close-note-frame-and-buffers ()
+    "Schliesst den Frame 'note' und die Buffer 'memo' und 'comment'."
+    (interactive)
+    (kill-buffer "memo")
+    (kill-buffer "comment")
+    (delete-frame (selected-frame)))
+
+#+end_src
+** dr-ii
+#+begin_src emacs-lisp
+  ;; (require 'cl-lib)
+
+  ;; (defun get-latest-pictures (directory count)
+  ;;   "Return a list of the latest COUNT pictures in DIRECTORY sorted by modification time."
+  ;;   (let* ((all-files (directory-files directory t))
+  ;;          (image-files (cl-remove-if-not (lambda (file)
+  ;;                                           (string-match-p "\\(\\.jpg\\|\\.jpeg\\|\\.png\\|\\.gif\\)$" file))
+  ;;                                         all-files))
+  ;;          (sorted-images (cl-sort image-files
+  ;;                                  'file-newer-than-file-p)))
+  ;;     (cl-subseq sorted-images 0 (min count (length sorted-images)))))
+
+  ;; (defun replace-ii-with-images (image-dir count)
+  ;;   "Replace each occurrence of 'ii' with an image path and attributes in an Org-mode buffer."
+  ;;   (interactive "DImage Directory: \nnNumber of images: ")
+  ;;   (save-excursion
+  ;;     (goto-char (point-min))
+  ;;     (let ((images (get-latest-pictures image-dir count)))
+  ;;       (cl-loop for img in images do
+  ;;                (when (search-forward "ii" nil t)
+  ;;                  (replace-match (format "\n#+attr_html: :width 300px\n#+attr_latex: :width 300px\n[[%s]]\n" img)))))))
+
+  ;; (add-hook 'org-mode-hook
+  ;;           (lambda ()
+  ;;             (define-key org-mode-map (kbd "C-c i") 'replace-ii-with-images)))
+
+
+  (require 'cl-lib)
+
+  (defun get-latest-pictures (directory count)
+    "Return a list of the latest COUNT pictures in DIRECTORY sorted by modification time."
+    (let* ((all-files (directory-files directory t))
+	   (image-files (cl-remove-if-not (lambda (file)
+					    (string-match-p "\\(\\.jpg\\|\\.jpeg\\|\\.png\\|\\.gif\\)$" file))
+					  all-files))
+	   (sorted-images (cl-sort image-files
+				   'file-newer-than-file-p)))
+      ;; Umkehren der Liste, damit die ältesten Bilder zuerst kommen.
+      (nreverse (cl-subseq sorted-images 0 (min count (length sorted-images))))))
+
+  (defun replace-ii-with-images (image-dir count)
+    "Replace each occurrence of 'ii' with an image path and attributes in an Org-mode buffer."
+    (interactive "DImage Directory: \nnNumber of images: ")
+    (save-excursion
+      (goto-char (point-min))
+      (let ((images (get-latest-pictures image-dir count)))
+	(cl-loop for img in images do
+		 (when (search-forward "ii" nil t)
+		   (replace-match (format "\n#+attr_html: :width 300px\n#+attr_latex: :width 300px\n[[%s]]\n" img)))))))
+
+  (add-hook 'org-mode-hook
+	    (lambda ()
+	      (define-key org-mode-map (kbd "C-c i") 'replace-ii-with-images)))
+
+
+  (defun get-latest-pictures-marp (directory count)
+    "Return a list of the latest COUNT pictures in DIRECTORY sorted by modification time."
+    (let* ((all-files (directory-files directory t))
+	   (image-files (cl-remove-if-not (lambda (file)
+					    (string-match-p "\\(\\.jpg\\|\\.jpeg\\|\\.png\\|\\.gif\\)$" file))
+					  all-files))
+	   (sorted-images (cl-sort image-files
+				   'file-newer-than-file-p)))
+      ;; Umkehren der Liste, damit die ältesten Bilder zuerst kommen.
+      (nreverse (cl-subseq sorted-images 0 (min count (length sorted-images))))))
+
+  (defun replace-ii-with-images-marp (image-dir count)
+    "Replace each occurrence of 'ii' with an image path and attributes in an Org-mode buffer."
+    (interactive "DImage Directory: \nnNumber of images: ")
+    (save-excursion
+      (goto-char (point-min))
+      (let ((images (get-latest-pictures image-dir count)))
+	(cl-loop for img in images do
+		 (when (search-forward "ii" nil t)
+		   (replace-match (format "\n![bg contain](%s)\n" img)))))))
+
+  (add-hook 'org-mode-hook
+	    (lambda ()
+	      (define-key org-mode-map (kbd "C-c I") 'replace-ii-with-images-marp)))
+#+end_src
+** insert-last-pictures
+#+begin_src emacs-lisp
+  (defun my/org-insert-latest-image ()
+      "Open the folder 'C:/Users/SyncthingServiceAcct/Syncl/09_Pictures', list the 10 latest images, and insert the selected image into the current Org buffer with specified width."
+      (interactive)
+      (let* ((directory (expand-file-name "C:/Users/SyncthingServiceAcct/Syncl/09_Pictures/"))
+	     (image-extensions '("jpg" "jpeg" "png" "gif" "bmp" "tiff"))
+	     ;; Liste der Bilddateien im Verzeichnis nach Änderungsdatum sortiert
+	     (images (directory-files directory t (concat "\\." (regexp-opt image-extensions) "$") t))
+	     (latest-images (seq-take (sort images (lambda (a b)
+						     (time-less-p (nth 5 (file-attributes b))
+								  (nth 5 (file-attributes a)))))
+				      10)))
+	;; Benutzer zur Auswahl eines Bildes auffordern
+	(if latest-images
+	    (let* ((selected-image (completing-read "Wählen Sie ein Bild: " latest-images nil t))
+		   (image-width (read-string "Bildbreite (px): "))
+		   (org-link (format "#+attr_html: :width %spx\n#+attr_latex: :width %spx\n[[file:%s]]"
+				     image-width image-width
+				     selected-image)))
+	      ;; Org-Mode-Markup an der Cursorposition einfügen
+	      (insert org-link)
+	      (message "Bild '%s' mit Breite %spx in den Org-Buffer eingefügt." (file-name-nondirectory selected-image) image-width))
+	  (message "Keine Bilder im Verzeichnis gefunden."))))
+
+    ;; Globale Tastenkombination zum schnellen Aufrufen der Funktion definieren
+    (global-set-key (kbd "C-c p") 'my/org-insert-latest-image)
+#+end_src
+
+** dr-latex-screenshot
+#+begin_src emacs-lisp
+  (defun my-latex-screenshot-function ()
+    "Save a screenshot in the working directory and insert an \\includegraphics command in LaTeX."
+    (interactive)
+    (require 'org-download)
+    (org-download-screenshot)
+    (insert "\\includegraphics[width=\\columnwidth]{"
+	    (file-name-nondirectory org-download-path-last-file)
+	    "}"))
+
+  ;; Die Funktion an "C-c x" binden
+  (global-set-key (kbd "C-c x") 'my-latex-screenshot-function)
+
+#+end_src
+
