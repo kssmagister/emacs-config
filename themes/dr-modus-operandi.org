@@ -1,19 +1,19 @@
 * modus-operandi
 ** Summary of the Purpose of the Functions and Code
-The provided Emacs Lisp code customizes the visual appearance of Emacs by configuring and using the `modus-themes` package. This code is used to:
+The provided Emacs Lisp code customizes the visual appearance of Emacs by configuring and using the "modus-themes" package. This code is used to:
 
-1. **Install and Load Modus Themes**: The `modus-themes` package is loaded using `straight-use-package` to provide a highly customizable, accessible, and aesthetically pleasing theme for Emacs. The theme options include both light (`modus-operandi`) and dark (`modus-vivendi`) themes.
+1. *Install and Load Modus Themes*: The "modus-themes" package is loaded using "straight-use-package" to provide a highly customizable, accessible, and aesthetically pleasing theme for Emacs. The theme options include both light ("modus-operandi") and dark ("modus-vivendi") themes.
 
-2. **Theme Customization**: Various visual settings are configured, such as:
-   - Italic and bold text settings (`modus-themes-italic-constructs`, `modus-themes-bold-constructs`).
-   - Mode line appearance (`modus-themes-mode-line`).
+2. *Theme Customization*: Various visual settings are configured, such as:
+   - Italic and bold text settings ("modus-themes-italic-constructs", "modus-themes-bold-constructs").
+   - Mode line appearance ("modus-themes-mode-line").
    - Fringe and tab styling, and how prompts and matched items are highlighted.
    - Specific styling for Org-mode blocks, headings, and regions.
    This enables a personalized and visually enhanced editor experience.
 
-3. **Font Settings**: Custom fonts are set for both the default text (`Fira Code`) and italic text (`Hack`). This enhances readability and consistency for different text styles.
+3. *Font Settings*: Custom fonts are set for both the default text ("Fira Code") and italic text ("Hack"). This enhances readability and consistency for different text styles.
 
-4. **Theme Loading and Switching**: The desired theme is loaded using `load-theme`, allowing the user to select between the light (`modus-operandi`) and dark (`modus-vivendi`) themes. Additionally, a keyboard shortcut (`C-c t`) is defined to toggle between the themes for convenience.
+4. *Theme Loading and Switching*: The desired theme is loaded using "load-theme", allowing the user to select between the light ("modus-operandi") and dark ("modus-vivendi") themes. Additionally, a keyboard shortcut ("C-c t") is defined to toggle between the themes for convenience.
 
 The code is aimed at improving both the aesthetics and usability of Emacs, making it more accessible and visually comfortable for different working conditions.
 
