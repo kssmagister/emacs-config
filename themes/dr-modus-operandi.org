@@ -1,0 +1,60 @@
+* modus-operandi
+** Summary of the Purpose of the Functions and Code
+The provided Emacs Lisp code customizes the visual appearance of Emacs by configuring and using the `modus-themes` package. This code is used to:
+
+1. **Install and Load Modus Themes**: The `modus-themes` package is loaded using `straight-use-package` to provide a highly customizable, accessible, and aesthetically pleasing theme for Emacs. The theme options include both light (`modus-operandi`) and dark (`modus-vivendi`) themes.
+
+2. **Theme Customization**: Various visual settings are configured, such as:
+   - Italic and bold text settings (`modus-themes-italic-constructs`, `modus-themes-bold-constructs`).
+   - Mode line appearance (`modus-themes-mode-line`).
+   - Fringe and tab styling, and how prompts and matched items are highlighted.
+   - Specific styling for Org-mode blocks, headings, and regions.
+   This enables a personalized and visually enhanced editor experience.
+
+3. **Font Settings**: Custom fonts are set for both the default text (`Fira Code`) and italic text (`Hack`). This enhances readability and consistency for different text styles.
+
+4. **Theme Loading and Switching**: The desired theme is loaded using `load-theme`, allowing the user to select between the light (`modus-operandi`) and dark (`modus-vivendi`) themes. Additionally, a keyboard shortcut (`C-c t`) is defined to toggle between the themes for convenience.
+
+The code is aimed at improving both the aesthetics and usability of Emacs, making it more accessible and visually comfortable for different working conditions.
+
+
+
+#+begin_src emacs-lisp
+  (straight-use-package 'modus-themes)
+
+  (require 'modus-themes)
+
+  ;; Hier können Sie Anpassungen vornehmen, z.B.:
+  ;;(setq modus-themes-italic-constructs t
+  ;;      modus-themes-bold-constructs nil)
+
+  (setq modus-themes-mode-line '(accented borderless)
+        modus-themes-bold-constructs t
+        modus-themes-italic-constructs t
+        modus-themes-fringes 'subtle
+        modus-themes-tabs-accented t
+        modus-themes-paren-match '(bold intense)
+        modus-themes-prompts '(bold intense)
+        modus-themes-completions '((matches . (extrabold background intense))
+                                   (selection . (semibold accented))
+                                   (popup . (accented intense)))
+        modus-themes-org-blocks 'tinted-background
+        modus-themes-scale-headings t
+        modus-themes-region '(bg-only)
+        modus-themes-headings
+        '((1 . (rainbow overline background 1.4))
+          (2 . (rainbow background 1.3))
+          (3 . (rainbow bold 1.2))
+          (t . (semilight 1.1))))
+
+  (set-face-attribute 'default nil :family "Fira Code" :height 110)
+  (set-face-attribute 'italic nil :family "Hack")
+
+  ;; Laden Sie das gewünschte Theme
+  (load-theme 'modus-operandi t)  ; Für das helle Theme
+  ;; oder
+  ;; (load-theme 'modus-vivendi t)  ; Für das dunkle Theme
+
+  ;; Optional: Fügen Sie einen Tastaturkürzel hinzu, um zwischen den Themes zu wechseln
+  (define-key global-map (kbd "C-c t") #'modus-themes-toggle)
+#+end_src
