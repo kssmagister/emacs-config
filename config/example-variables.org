@@ -1,0 +1,67 @@
+#+TITLE: Example Emacs Configuration Variables
+#+PROPERTY: header-args:emacs-lisp :tangle ./example-variables.el
+
+* System Detection and Path Variables
+#+begin_src emacs-lisp
+  ;; Operating system detection
+  (defvar is-windows (eq system-type 'windows-nt))
+  (defvar is-linux (eq system-type 'gnu/linux))
+
+  ;; Function to determine Windows username
+  (defun get-windows-username ()
+    (when is-windows
+      (getenv "USERNAME")))
+
+  ;; Base directories
+  (defvar my-home-directory
+    (cond (is-windows "C:/Users/USERNAME/")
+          (is-linux "~/")
+          (t (getenv "HOME"))))
+
+  ;; Syncthing directory (only for specific users)
+  (defvar my-syncl-directory
+    (cond 
+     ((and is-windows (string= (get-windows-username) "SYNC_USERNAME"))
+      "C:/Users/SYNC_USERNAME/Syncl/")
+     (is-linux (expand-file-name "Syncl/" my-home-directory))
+     (t nil)))
+
+  ;; Dropbox directory (only for specific users)
+  (defvar my-dropbox-directory
+    (when (and is-windows (string= (get-windows-username) "DROPBOX_USERNAME"))
+      "C:/Users/DROPBOX_USERNAME/Dropbox/"))
+
+  ;; Org-Agenda directory
+  (defvar my-org-agenda-directory
+    (cond
+     ((and is-windows (string= (get-windows-username) "SYNC_USERNAME"))
+      (expand-file-name "orgmode/agendafiles/" my-syncl-directory))
+     ((and is-windows (string= (get-windows-username) "DROPBOX_USERNAME"))
+      (expand-file-name "orgmode/agendafiles/" my-dropbox-directory))
+     (is-linux (expand-file-name "orgmode/agendafiles/" my-home-directory))
+     (t nil)))
+
+  ;; Org-Roam directory
+  (defvar my-orgroam-directory
+    (when my-syncl-directory
+      (expand-file-name "orgroam/" my-syncl-directory)))
+
+  ;; Example of using the variables
+  (message "Home Directory: %s" my-home-directory)
+  (message "Org Agenda Directory: %s" my-org-agenda-directory)
+  (message "Org Roam Directory: %s" my-orgroam-directory)
+#+end_src
+
+* Instructions for Customization
+To use these variables for your own configuration:
+
+1. Replace 'USERNAME' with your actual username.
+2. Replace 'SYNC_USERNAME' with the username that uses Syncthing.
+3. Replace 'DROPBOX_USERNAME' with the username that uses Dropbox.
+4. Adjust the paths to match your actual directory structure.
+5. Add more variables or remove unused ones as needed.
+6. Ensure that the paths are correct and exist on your system.
+
+Note: This file serves as an example only. For your actual configuration,
+you should create a 'variables.org' with your real paths and avoid sharing
+it publicly.
