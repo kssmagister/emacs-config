@@ -507,7 +507,7 @@ NOT INSTALLED
     (setq consult-omni-multi-sources '("Wikipedia" "gptel"))
 
     ;; API-Schlüssel für gptel setzen (für OpenAI erforderlich)
-    (setq gptel-api-key "sk-Xh4sDjT2TDgJCkaWJTkkrJnY2ziu0XOCRnAx4pE3sBT3BlbkFJOlA24gyrrsGVs__l06PzesghI0EUbW78p77Fumm8EA") ;; Verwende gptel-api-key statt consult-omni-openai-api-key
+    (setq gptel-api-key "xxx") ;; Verwende gptel-api-key statt consult-omni-openai-api-key
 
     ;; Setze consult-omni-multi als Standard-Suchbefehl
     (setq consult-omni-default-interactive-command #'consult-omni-multi))
